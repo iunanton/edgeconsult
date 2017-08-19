@@ -1,4 +1,8 @@
 #!/bin/bash
-docker build -t edgeconsult .
-docker run -d -P --restart=always --name=edgeconsult edgeconsult
+docker run --detach \
+	--name=edgeconsult \
+	--publish-all \
+	--restart=always \
+	--volume=$PWD/public_html:/usr/local/apache2/htdocs \
+	httpd:latest > /dev/null
 docker ps -l
