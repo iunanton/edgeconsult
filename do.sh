@@ -1,8 +1,10 @@
 #!/bin/bash
+
+docker build -t edgeconsult .
 docker run --detach \
 	--name=edgeconsult \
 	--publish-all \
 	--restart=always \
-	--volume=$PWD/public_html:/usr/local/apache2/htdocs \
-	httpd:latest > /dev/null
-docker ps -l
+	edgeconsult > /dev/null
+docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' edgeconsult
+docker port edgeconsult
