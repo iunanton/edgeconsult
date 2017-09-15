@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>WebSocket - Connection tester</title>
+<meta name="generator" content="Bluefish 2.2.7" >
+<meta name="author" content="Anton Yun" >
+<meta name="date" content="2017-09-16T00:43:27+0800" >
+<meta name="copyright" content="">
+<meta name="keywords" content="">
+<meta name="description" content="">
+<meta name="ROBOTS" content="NOINDEX, NOFOLLOW">
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta http-equiv="content-type" content="application/xhtml+xml; charset=UTF-8">
+<meta http-equiv="content-style-type" content="text/css">
+<meta http-equiv="expires" content="0">
+<meta name="viewport" content="width=device-width,initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=1" />
+</head>
+<body style="font-family: arial, helvetica, sans-serif;">
+	<h1>Idle Connection tester</h1>
+	<div id="FormWrapper">
+		<label for="URL">Server URL:</label><br />
+		<input type="text" id="URL"/><br />
+		<label for="MinValue">Idle time, min value:</label><br />
+		<input type="text" id="MinValue" /><br />
+		<label for="MaxValue">Idle time, max value:</label><br />
+		<input type="text" id="MaxValue" /><br />
+		<button id="Start">Start test</button>
+	</div>
+	<div id="Log" style="height: 240px; overflow-y: scroll; font-size: 12px;">
+		log content
+	</div>
+	<div>Copyright &copy 2016<script>new Date().getFullYear()>2016&&document.write("-" + new Date().getFullYear());</script> <a target="_blank" href="http://edgeconsult.me" style="color: inherit">Edge Consulting</a></div>
+<script type="text/javascript">
+	(function () {
+		var ServerURL;
+		var MinValue;
+		var MaxValue;
+		
+		function idle(ServerURL, MinValue, MaxValue) {
+			var time = MinValue;
+			var dtime = (MaxValue - MinValue)/100;
+			
+			var onMessage;
+			
+			var socket = new WebSocket(ServerURL);
+
+			socket.onopen = function () {
+				log("socket was opened");
+				log("time: " + time + " dtime: " + dtime);
+				log("start test with timeout " + time);
+				setTimeout(function() {
+					log("time is up");
+					ping();
+				}, time);
+			};
+			
+			socket.onmessage = function (event) {
+				onMessage = true;
+				log("got message " + event.data);
+			}
+			
+			function log(text) {
+				document.getElementById("Log").innerHTML += "<span style=\"color: lightcoral;\">" + Date.now() + "</span>" + " " + text + "<br />";
+				document.getElementById("Log").scrollTop = document.getElementById("Log").scrollHeight;
+			}
+			
+			function ping() {
+				var message = JSON.stringify({ "type": "ping", "data": {} });
+				log("send message " + message);
+				socket.send(message);
+				setTimeout(pong, 100);
+			}
+			
+			function pong() {
+				if (onMessage) {
+					onMessage = false;
+					dtime *= 1.5;
+					time += dtime;
+					log("time: " + time + " dtime: " + dtime);
+					log("start test with timeout " + time);
+					setTimeout(function() {
+						log("time is up");
+						ping();
+					}, time);
+				} else {
+					log("---lost connection---");
+					dtime /= 2;
+					time -= dtime;
+					socket = new WebSocket(ServerURL);
+					socket.onopen = function () {
+						log("socket was opened");
+						log("time: " + time + " dtime: " + dtime);
+						log("start test with timeout " + time);
+						setTimeout(function() {
+							log("time is up");
+							ping();
+						}, time);
+					};
+					socket.onmessage = function (event) {
+						onMessage = true;
+						log("got message " + event.data);
+					}
+				}
+			}			
+			return 0;
+		}
+		
+		document.getElementById("Start").addEventListener("click", function () {
+			ServerURL = document.getElementById("URL").value;
+			MinValue = parseInt(document.getElementById("MinValue").value);
+			MaxValue = parseInt(document.getElementById("MaxValue").value);
+			document.getElementById("Log").innerHTML = "";
+			if (MinValue > 100 && MaxValue > MinValue) {
+				idle(ServerURL, MinValue, MaxValue);
+			}
+		})
+	})();
+</script>
+</body>
+</html>
